@@ -136,9 +136,10 @@ const pe = new PuntersEdge({
 | `/v1/usage`, `/v1/billing/portal`, the sandbox, `/v1/uptime` | 0 |
 | `sports.list`, `racing.events`, `racing.venues`, `racing.trackConditions`, coverage endpoints | 1 |
 | `sports.odds` | **1 per market requested** |
-| `racing.nextToGo`, `racing.results`, `racing.changes`, `racing.acceptances`, jockey/trainer stats, `arb.bestPrices` | 2 |
-| `racing.bestOdds`, `racing.movers`, form endpoints, `sports.bestOdds`, `arb.sports`, `arb.lines` | 3 |
-| `racing.priceHistory`, `racing.closingLines`, `racing.pricePaths`, sports history and movements | 5 |
+| `sports.results` | 1 |
+| `racing.nextToGo`, `racing.results`, `racing.changes`, `racing.acceptances`, `racing.markets`, `racing.tote`, jockey/trainer stats, `arb.bestPrices` | 2 |
+| `racing.bestOdds`, `racing.movers`, `racing.consensus`, `racing.intelligence`, form endpoints (`racing.form`, `racing.greyhounds.field`, horses and greyhounds), `sports.bestOdds`, `arb.sports`, `arb.lines` | 3 |
+| `racing.priceHistory`, `racing.closingLines`, `racing.pricePaths`, `racing.marketSummary`, `racing.intelligenceScan`, `sports.closingLines`, sports history and movements | 5 |
 | `racing.closingLinesCsv`, `racing.pricePathsCsv` | **20** |
 
 A malformed request — an unknown sport key, an unrecognised bookmaker, a bad date — is refused

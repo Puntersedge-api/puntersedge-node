@@ -24,14 +24,56 @@ import {
 import { PuntersEdgeError } from "./errors.js";
 import type { Credits } from "./credits.js";
 import type {
-  AcceptancesOut, ArchiveCoverageOut, BackfillStatusOut, BackfillSubmitOut,
-  BestOddsEventOut, BestPricesOut, BulkCatalogueOut, ClosingLinesOut, ClvIn, ClvOut,
-  ConnectorHealthOut, GreyhoundFormOut, GreyhoundStatsOut, HorseFormOut, HorseRunsOut,
-  LinesArbOut, MoverOut, NextRaceOut, OverageOut, PremiershipOut, PriceHistoryOut,
-  PricePathsOut, RaceEventOut, RaceResultOut, RacingBestOddsOut, RacingChangesOut,
-  ResultsCoverageOut, RewardIn, SportOddsEventOut, SportOut, SportsArbOut, TeamKeyIn,
-  TeamKeyListOut, TeamKeyMintOut, TeamKeyOut, TeamKeyPatchIn, TrackConditionsOut, UsageOut,
-  VenueOut, WebhookDeliveryResponse, WebhookResponse,
+  AcceptancesOut,
+  ArchiveCoverageOut,
+  BackfillStatusOut,
+  BackfillSubmitOut,
+  BestOddsEventOut,
+  BestPricesOut,
+  BulkCatalogueOut,
+  ClosingLinesOut,
+  ClvIn,
+  ClvOut,
+  ConnectorHealthOut,
+  ConsensusOut,
+  FieldFormOut,
+  GreyhoundFieldOut,
+  GreyhoundFormOut,
+  GreyhoundStatsOut,
+  HorseFormOut,
+  HorseRunsOut,
+  LinesArbOut,
+  MarketSummaryOut,
+  MarketsOut,
+  MoverOut,
+  NextRaceOut,
+  OverageOut,
+  PremiershipOut,
+  PriceHistoryOut,
+  PricePathsOut,
+  RaceEventOut,
+  RaceResultOut,
+  RacingBestOddsOut,
+  RacingChangesOut,
+  RestatementsOut,
+  ResultsCoverageOut,
+  RewardIn,
+  ScanOut,
+  SportOddsEventOut,
+  SportOut,
+  SportResultOut,
+  SportsArbOut,
+  TeamKeyIn,
+  TeamKeyListOut,
+  TeamKeyMintOut,
+  TeamKeyOut,
+  TeamKeyPatchIn,
+  ToteBoardOut,
+  TrackConditionsOut,
+  UsageOut,
+  VenueOut,
+  WebhookDeliveryResponse,
+  WebhookResponse,
 } from "./types.generated.js";
 
 export const VERSION = "1.3.0";
@@ -74,6 +116,12 @@ function split(options: object | undefined): {
 } {
   if (!options) return { params: undefined, request: {} };
   const { signal, timeoutMs, headers, ...rest } = options as RequestOptions & object;
+  // `signal` is the AbortSignal, except that two archive endpoints also have a query parameter
+  // called signal (a signal class such as "steam"). Their options spell it `signalClass`, and
+  // the method puts it back under the wire name before it reaches here, as a string.
+  if (typeof (signal as unknown) === "string") {
+    return { params: q({ ...rest, signal }), request: { timeoutMs, headers } };
+  }
   return { params: q(rest), request: { signal, timeoutMs, headers } };
 }
 
@@ -185,6 +233,89 @@ export interface ClosingLinesOptions extends ArchiveOptions {
   closingOnly?: boolean;
   /** Only rows from races that have a result. */
   resultedOnly?: boolean;
+}
+
+/** One race, named by `raceId` or by `venue` + `meetingDate` + `raceNumber`. */
+export interface RaceRefOptions extends CallOptions {
+  /** The race_id from `nextToGo`, `events` or `results`. The most reliable way to name a race. */
+  raceId?: string;
+  venue?: string;
+  /** Meeting day, `YYYY-MM-DD`, Australian Eastern time. */
+  meetingDate?: string;
+  raceNumber?: number;
+  /** Two-letter country, only needed when two meetings share a venue name on one day. */
+  country?: string;
+}
+
+export interface MarketsOptions extends RaceRefOptions, BookmakerFilter {
+  /** A subset of `win`, `place`, `top2`, `top3`, `top4`, `exotics`. Omit for all. */
+  markets?: string | string[];
+}
+
+export interface ConsensusOptions extends RaceRefOptions, BookmakerFilter {
+  /** The de-margining method; the server's default is `power`. */
+  method?: string;
+  /** Books a runner must be priced by before it gets a consensus. Default 2. */
+  minBooks?: number;
+  /** Keep stale quotes in the consensus. Off by default. */
+  includeStale?: boolean;
+}
+
+export interface IntelligenceOptions extends RaceRefOptions {
+  minBooks?: number;
+}
+
+export interface IntelligenceScanOptions extends CallOptions {
+  /** How far ahead to scan, e.g. `"60m"` (the default) or `"3h"`. */
+  window?: string;
+  minMovePct?: number;
+  minBooks?: number;
+  direction?: "firming" | "drifting";
+  /** Only races carrying this signal class. Sent as the API's `signal` parameter. */
+  signalClass?: string;
+  country?: string | string[];
+  categories?: string | string[];
+  limit?: number;
+}
+
+export interface MarketSummaryOptions extends CallOptions, PageOptions {
+  from?: string;
+  to?: string;
+  /** Single-day alias for `from`+`to`. */
+  date?: string;
+  venue?: string;
+  category?: "horse" | "harness" | "greyhound";
+  categories?: string | string[];
+  country?: string;
+  raceId?: string;
+  /** `strong_firm`, `firm`, `steady`, `drift`, `strong_drift` or `insufficient`. Sent as the API's `signal`. */
+  signalClass?: string;
+}
+
+/** `signalClass` under the API's own name, `signal`, which the transport reserves for AbortSignal. */
+function withSignalClass<T extends { signalClass?: string }>(options?: T): object | undefined {
+  if (!options) return options;
+  const { signalClass, ...rest } = options;
+  return signalClass === undefined ? rest : { ...rest, signal: signalClass };
+}
+
+export interface FieldFormOptions extends RaceRefOptions {
+  /** Recent runs per runner. The server's default is 10. */
+  runs?: number;
+}
+
+export interface ToteOptions extends CallOptions {
+  /** US race day, `YYYY-MM-DD`. Default today in the US. */
+  date?: string;
+  /** `US`, `CA` or both. */
+  country?: string | string[];
+  status?: "open" | "off" | "official";
+  /** One priced race, by the race_id `nextToGo` serves. */
+  raceId?: string;
+  /** One race by TVG's key, `tvg_<track>_<YYYY-MM-DD>_<n>`, priced or not. */
+  sourceRaceId?: string;
+  /** Add how one race's odds and WIN pool moved from an hour before post. Needs `raceId` or `sourceRaceId`. */
+  history?: boolean;
 }
 
 export interface RacingChangesOptions extends RacingFilterOptions {
@@ -305,6 +436,15 @@ class GreyhoundsAPI {
     options?: CallOptions & { by?: string | string[] },
   ): Promise<GreyhoundStatsOut> {
     return this.pe.get<GreyhoundStatsOut>("/v1/racing/greyhounds/stats", { dog, ...options });
+  }
+
+  /**
+   * Every dog in one race with its recent runs and record, out of our own results: the field's
+   * form in one call rather than one `form()` per dog. 3 credits. Australian races, and British
+   * and Irish ones from 12 October 2026.
+   */
+  field(options?: FieldFormOptions): Promise<GreyhoundFieldOut> {
+    return this.pe.get<GreyhoundFieldOut>("/v1/racing/greyhounds/field", options);
   }
 }
 
@@ -436,6 +576,58 @@ class RacingAPI {
   }
 
   /**
+   * Every market on ONE race: win, place, Same Race Multi top 2/3/4 and, once it has run, the
+   * exotic dividends. 2 credits. Plus plan and above. Two races sharing venue, date and number
+   * are a free 409 rather than a silent pick.
+   */
+  markets(options?: MarketsOptions): Promise<MarketsOut> {
+    return this.pe.get<MarketsOut>("/v1/racing/markets", options);
+  }
+
+  /**
+   * Margin-free consensus for one race: each runner's fair probability and price, built by
+   * removing every book's margin and combining the books, with the books used and the ones left
+   * out and why. 3 credits.
+   */
+  consensus(options?: ConsensusOptions): Promise<ConsensusOut> {
+    return this.pe.get<ConsensusOut>("/v1/racing/consensus", options);
+  }
+
+  /** A one-race market read: consensus at each mark, how it moved, which books lead or lag. 3 credits. */
+  intelligence(options?: IntelligenceOptions): Promise<Record<string, unknown>> {
+    return this.pe.get<Record<string, unknown>>("/v1/racing/intelligence", options);
+  }
+
+  /** Every upcoming race in the window with a market signal. 5 credits. */
+  intelligenceScan(options?: IntelligenceScanOptions): Promise<ScanOut> {
+    return this.pe.get<ScanOut>("/v1/racing/intelligence/scan", withSignalClass(options));
+  }
+
+  /**
+   * Per-runner market summary for past races: opening and closing consensus, the move between
+   * them and its signal class. 5 credits a page, archive plans (JSON only here; the CSV form
+   * costs 20).
+   */
+  marketSummary(options?: MarketSummaryOptions): Promise<MarketSummaryOut> {
+    return this.pe.get<MarketSummaryOut>("/v1/racing/market-summary", withSignalClass(options));
+  }
+
+  /** Recent runs and form stats for every runner in one race. 3 credits. */
+  form(options?: FieldFormOptions): Promise<FieldFormOut> {
+    return this.pe.get<FieldFormOut>("/v1/racing/form", options);
+  }
+
+  /**
+   * North American tote odds from TVG: per runner the morning line and the current win odds
+   * (odds-to-1 and decimal) with the WIN pool behind them, for every US and Canadian race on the
+   * board. 2 credits. Pari-mutuel, so a pre-race price is an estimate of what the pool will pay;
+   * settled payoffs are on `results({ country: "US" })`.
+   */
+  tote(options?: ToteOptions): Promise<ToteBoardOut> {
+    return this.pe.get<ToteBoardOut>("/v1/racing/tote", options);
+  }
+
+  /**
    * The closing-line archive as a CSV string, streamed by the server in a stable column order.
    *
    * **20 credits, not 5.** This is `closingLines` with `format=csv`, and CSV is priced as the
@@ -537,6 +729,33 @@ class SportsAPI {
     },
   ): Promise<unknown> {
     return this.pe.get(`/v1/sports/${encodeURIComponent(sportKey)}/odds/movements`, options);
+  }
+
+  /**
+   * Final scores from the league's own record for `afl`, `aflw`, `nrl` and `nrlw`; another sport
+   * is a free 422, never an empty list. 1 credit. `event_id` ties a result to the fixture you hold
+   * prices for and is null when no fixture matched with certainty; `linkedOnly` keeps only rows
+   * that carry one.
+   */
+  results(
+    sportKey: string,
+    options?: CallOptions & {
+      season?: number; competition?: string; finalOnly?: boolean; linkedOnly?: boolean; limit?: number;
+    },
+  ): Promise<SportResultOut[]> {
+    return this.pe.get<SportResultOut[]>(`/v1/sports/${encodeURIComponent(sportKey)}/results`, options);
+  }
+
+  /**
+   * Each bookmaker's last head-to-head price, handicap line and total before the start of every
+   * match in the range (default the last 7 days, at most 92), with the consensus close. 5 credits.
+   * Standard plan and above.
+   */
+  closingLines(
+    sportKey: string,
+    options?: CallOptions & BookmakerFilter & { from?: string; to?: string },
+  ): Promise<unknown> {
+    return this.pe.get(`/v1/sports/${encodeURIComponent(sportKey)}/closing-lines`, options);
   }
 }
 
@@ -748,6 +967,35 @@ class WebhooksAPI {
     return this.pe.post(
       `/v1/webhooks/${encodeURIComponent(webhookId)}/test`, undefined, options);
   }
+
+  /**
+   * Queue past events for this subscription again, with their original `event_id`, so a receiver
+   * that was down can catch up. Re-sent deliveries carry `X-PuntersEdge-Replay: true`. `since` is
+   * an ISO timestamp; `status` narrows to deliveries in that state (e.g. `"failed"`).
+   */
+  replay(
+    webhookId: string,
+    options?: CallOptions & { since?: string; status?: string },
+  ): Promise<unknown> {
+    const { params, request: req } = split(options);
+    return this.pe.raw("POST", `/v1/webhooks/${encodeURIComponent(webhookId)}/replay`, params, undefined, req)
+      .then((r) => r.data);
+  }
+
+  /** Restart deliveries to a paused or deactivated subscription, keeping its secret. */
+  resume(webhookId: string, options?: CallOptions): Promise<unknown> {
+    return this.pe.post(
+      `/v1/webhooks/${encodeURIComponent(webhookId)}/resume`, undefined, options);
+  }
+
+  /**
+   * Issue a new signing secret; the old one keeps verifying for 24 hours. The new secret is
+   * returned once, here, and nowhere else.
+   */
+  rotateSecret(webhookId: string, options?: CallOptions): Promise<WebhookResponse> {
+    return this.pe.post<WebhookResponse>(
+      `/v1/webhooks/${encodeURIComponent(webhookId)}/rotate-secret`, undefined, options);
+  }
 }
 
 // ── health ────────────────────────────────────────────────────────────────────────────────
@@ -844,6 +1092,17 @@ class BulkAPI {
    */
   datasets(options?: CallOptions & { dataset?: string }): Promise<BulkCatalogueOut> {
     return this.pe.get<BulkCatalogueOut>("/v1/bulk/datasets", options);
+  }
+
+  /**
+   * Dataset files re-issued after their first publication, newest first, with the reason: a day's
+   * file is regenerated for three nights after the day as late results and closing lines land.
+   * Free, no credits.
+   */
+  restatements(
+    options?: CallOptions & { since?: string; dataset?: string; limit?: number },
+  ): Promise<RestatementsOut> {
+    return this.pe.get<RestatementsOut>("/v1/bulk/restatements", options);
   }
 
   /**

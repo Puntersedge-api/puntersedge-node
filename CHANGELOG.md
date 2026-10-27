@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0
+
+Eleven methods for endpoints the API had and the SDK did not, each typed from the regenerated
+schema: `racing.markets` (every market on one race), `racing.consensus` (margin-free fair
+prices), `racing.intelligence` and `racing.intelligenceScan`, `racing.marketSummary`,
+`racing.form` (a whole field's form), `racing.tote` (TVG's North American tote odds),
+`racing.greyhounds.field`, `sports.results` (AFL/AFLW/NRL/NRLW final scores),
+`sports.closingLines`, `bulk.restatements`, and the three webhook actions `webhooks.replay`,
+`webhooks.resume` and `webhooks.rotateSecret`. The scan and market-summary filter the API calls
+`signal` is the option `signalClass`, because `signal` on every method is the AbortSignal. `openapi.json` and `types.generated.ts` are
+regenerated from the live schema (118 schemas, was 94). No behaviour changes to existing methods.
+
 ## 1.3.0
 
 Conditional requests, on by default. Every 200 from the API carries an `ETag`; the client now

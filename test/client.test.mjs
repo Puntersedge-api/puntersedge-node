@@ -636,3 +636,17 @@ test("conditional requests: off when asked, and never on POST", async () => {
   await pe2.post("/v1/racing/clv", { bets: [] });
   assert.ok(capture2.calls.every((c) => c.inm === undefined));
 });
+
+test("signalClass goes on the wire as the API's `signal`, and an AbortSignal never does", async () => {
+  const capture = {};
+  const pe = new PuntersEdge({ apiKey: KEY, fetch: stub({ capture, body: {} }) });
+  await pe.racing.intelligenceScan({ signalClass: "steam", window: "30m" });
+  assert.equal(new URL(capture.url).search, "?window=30m&signal=steam");
+  const ac = new AbortController();
+  await pe.racing.marketSummary({ date: "2026-10-24", signalClass: "firm", signal: ac.signal });
+  const u = new URL(capture.url);
+  assert.equal(u.searchParams.get("signal"), "firm");
+  // the transport composes the caller's signal with its timeout, so check the kind, not identity
+  assert.ok(capture.init.signal instanceof AbortSignal);
+  assert.equal(u.searchParams.has("signal_class"), false);
+});

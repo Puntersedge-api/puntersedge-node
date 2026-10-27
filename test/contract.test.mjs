@@ -87,6 +87,13 @@ function calls(pe) {
     ["racing.closingLinesCsv", () => pe.racing.closingLinesCsv({ date: "2026-09-01" })],
     ["racing.pricePathsCsv", () => pe.racing.pricePathsCsv({ date: "2026-09-01" })],
     ["racing.clv", () => pe.racing.clv({ bets: [{ race_id: "r1", runner_ref: "ra:x", price: 3.5, stake: 10 }], reference: "best" })],
+    ["racing.markets", () => pe.racing.markets({ raceId: "r1", venue: "Randwick", meetingDate: "2026-09-01", raceNumber: 3, country: "AU", bookmakers: ["tab"], markets: ["win", "top4"] })],
+    ["racing.consensus", () => pe.racing.consensus({ raceId: "r1", venue: "Randwick", meetingDate: "2026-09-01", raceNumber: 3, country: "AU", method: "power", bookmakers: ["tab"], minBooks: 2, includeStale: false })],
+    ["racing.intelligence", () => pe.racing.intelligence({ raceId: "r1", venue: "Randwick", meetingDate: "2026-09-01", raceNumber: 3, country: "AU", minBooks: 2 })],
+    ["racing.intelligenceScan", () => pe.racing.intelligenceScan({ window: "60m", minMovePct: 10, minBooks: 3, direction: "firming", signalClass: "steam", country: "AU", categories: ["horse"], limit: 20 })],
+    ["racing.marketSummary", () => pe.racing.marketSummary({ from: "2026-08-01", to: "2026-09-01", venue: "Randwick", category: "horse", categories: ["horse"], country: "AU", raceId: "r1", signalClass: "firm", limit: 10, offset: 0 })],
+    ["racing.form", () => pe.racing.form({ raceId: "r1", venue: "Randwick", meetingDate: "2026-09-01", raceNumber: 3, runs: 5 })],
+    ["racing.tote", () => pe.racing.tote({ date: "2026-10-27", country: ["US", "CA"], status: "open", raceId: "r1", sourceRaceId: "tvg_SAR_2026-10-27_7", history: true })],
     // racing / form
     ["racing.horses.form", () => pe.racing.horses.form("Winx")],
     ["racing.horses.runs", () => pe.racing.horses.runs("Winx", { limit: 20 })],
@@ -96,12 +103,15 @@ function calls(pe) {
     ["racing.horses.backfillResults", () => pe.racing.horses.backfillResults("job1", { limit: 50, offset: 0 })],
     ["racing.greyhounds.form", () => pe.racing.greyhounds.form("Fernando Bale", { limit: 20 })],
     ["racing.greyhounds.stats", () => pe.racing.greyhounds.stats("Fernando Bale", { by: ["track", "box"] })],
+    ["racing.greyhounds.field", () => pe.racing.greyhounds.field({ raceId: "r1", venue: "Sandown Park", meetingDate: "2026-09-01", raceNumber: 3, runs: 5 })],
     // sports
     ["sports.list", () => pe.sports.list()],
     ["sports.odds", () => pe.sports.odds("afl", { markets: ["h2h", "totals"], bookmakers: ["tab"], competition: "NRLW", includeUnknownCompetition: true, oddsFormat: "decimal", maxAgeMinutes: 60 })],
     ["sports.bestOdds", () => pe.sports.bestOdds("afl")],
     ["sports.oddsHistory", () => pe.sports.oddsHistory("afl", { from: "2026-08-01", to: "2026-09-01", bookmakers: ["tab"], market: "h2h", offset: 0 })],
     ["sports.oddsMovements", () => pe.sports.oddsMovements("afl", { since: "2026-09-01T00:00:00Z", bookmakers: ["tab"], market: "h2h", minDelta: 0.1 })],
+    ["sports.results", () => pe.sports.results("afl", { season: 2026, competition: "AFLW", finalOnly: true, linkedOnly: true, limit: 20 })],
+    ["sports.closingLines", () => pe.sports.closingLines("nrl", { from: "2026-08-01", to: "2026-09-01", bookmakers: ["tab"] })],
     // arb
     ["arb.sports", () => pe.arb.sports({ sportKey: "afl", maxAgeMinutes: 60, minProfitPct: 1 })],
     ["arb.lines", () => pe.arb.lines({ sportKey: "afl", maxAgeMinutes: 60, minProfitPct: 1 })],
@@ -123,6 +133,7 @@ function calls(pe) {
     ["account.setReferralPayout", () => pe.account.setReferralPayout({ reward_type: "credits" })],
     // bulk
     ["bulk.datasets", () => pe.bulk.datasets({ dataset: "closing_lines" })],
+    ["bulk.restatements", () => pe.bulk.restatements({ since: "2026-10-01", dataset: "closing_lines", limit: 10 })],
     ["bulk.download", () => pe.bulk.download("closing_lines", "2026-09-01", { format: "csv", ifNoneMatch: '"abc"' })],
     // webhooks
     ["webhooks.create", () => pe.webhooks.create({ url: "https://example.com/hook", events: ["race.odds_open"] })],
@@ -130,6 +141,9 @@ function calls(pe) {
     ["webhooks.delete", () => pe.webhooks.delete("wh1")],
     ["webhooks.deliveries", () => pe.webhooks.deliveries("wh1")],
     ["webhooks.test", () => pe.webhooks.test("wh1")],
+    ["webhooks.replay", () => pe.webhooks.replay("wh1", { since: "2026-10-27T00:00:00Z", status: "failed" })],
+    ["webhooks.resume", () => pe.webhooks.resume("wh1")],
+    ["webhooks.rotateSecret", () => pe.webhooks.rotateSecret("wh1")],
     // health + sandbox
     ["health.connectors", () => pe.health.connectors()],
     ["health.connectorDetail", () => pe.health.connectorDetail({ staleAfterS: 300, coverageStaleAfterS: 21600, includeSports: true })],
@@ -207,6 +221,24 @@ test("the SDK covers the read surface a customer is sold", async () => {
     "/v1/login/exchange",
     "/v1/logout",
     "/v1/keys/reveal",
+    // The account console (2026-10): sign-in by password, onboarding, insights, marketing
+    // preferences, sample files, the upgrade link, link templates and embeddable widgets are the
+    // website's own surfaces, driven by a browser session, not by an API key in a program.
+    "/v1/account",
+    "/v1/account/events",
+    "/v1/account/insights",
+    "/v1/account/marketing",
+    "/v1/account/onboarding",
+    "/v1/account/password",
+    "/v1/account/samples/{kind}",
+    "/v1/billing/upgrade-link",
+    "/v1/link-templates",
+    "/v1/login",
+    "/v1/logout/all",
+    "/v1/password/forgot",
+    "/v1/password/reset",
+    "/v1/widgets",
+    "/v1/widgets/{widget_id}",
   ]);
 
   const reached = [];
@@ -248,16 +280,30 @@ test("the SDK covers the read surface a customer is sold", async () => {
 test("every stated credit cost matches what the API charges", async () => {
   const source = readFileSync(new URL("../src/client.ts", import.meta.url), "utf8");
 
-  /** method name -> the credits figure its doc comment claims, where it states one. */
+  /** "Class.method" -> the credits figure its doc comment claims, where it states one. Keyed by
+   *  the enclosing class as well as the method, because two classes may share a method name
+   *  with different costs (racing.results is 2 credits, sports.results is 1). */
   const claimed = new Map();
-  // A doc comment followed by a method signature. Non-greedy so each comment binds to the
-  // method immediately after it.
-  const re = /\/\*\*([\s\S]*?)\*\/\s*\n\s*(?:readonly\s+)?([a-zA-Z]+)\s*\(/g;
-  for (const [, comment, method] of source.matchAll(re)) {
+  // A class declaration, or a doc comment followed by a method signature. Non-greedy so each
+  // comment binds to the method immediately after it.
+  const re = /^\s*(?:export\s+)?class\s+([A-Za-z]+)|\/\*\*((?:[^*]|\*(?!\/))*)\*\/\s*\n\s*(?:readonly\s+)?([a-zA-Z]+)\s*\(/gm;
+  let cls = "";
+  for (const [, klass, comment, method] of source.matchAll(re)) {
+    if (klass) { cls = klass; continue; }
     const m = comment.match(/\*{0,2}(\d+)\*{0,2}\s+credits?\b/i);
-    if (m) claimed.set(method, Number(m[1]));
-    else if (/\bfree\b/i.test(comment) && /credit/i.test(comment)) claimed.set(method, 0);
+    if (m) claimed.set(cls + "." + method, Number(m[1]));
+    else if (/\bfree\b/i.test(comment) && /credit/i.test(comment)) claimed.set(cls + "." + method, 0);
   }
+  /** "racing.horses.runs" -> the claim under HorsesAPI.runs; "sports.results" -> SportsAPI.results. */
+  const claimFor = (qualified) => {
+    const parts = qualified.split(".");
+    const method = parts.pop();
+    const owner = parts.pop();
+    const key = owner.charAt(0).toUpperCase() + owner.slice(1) + "API." + method;
+    if (claimed.has(key)) return claimed.get(key);
+    const same = [...claimed].filter(([k]) => k.endsWith("." + method));
+    return same.length === 1 ? same[0][1] : undefined;
+  };
 
   assert.ok(claimed.size > 20, `only found ${claimed.size} cost claims — did the doc format change?`);
 
@@ -282,7 +328,8 @@ test("every stated credit cost matches what the API charges", async () => {
 
   for (const [qualified, pathname] of pathFor) {
     const method = qualified.split(".").pop();
-    if (!claimed.has(method)) continue;
+    const claim = claimFor(qualified);
+    if (claim === undefined) continue;
 
     const template = matchPath(pathname);
     const desc = spec.paths[template]?.get?.description ?? "";
@@ -302,9 +349,9 @@ test("every stated credit cost matches what the API charges", async () => {
       expected = Number(plain[1]);
     }
 
-    if (Number.isFinite(expected) && claimed.get(method) !== expected) {
+    if (Number.isFinite(expected) && claim !== expected) {
       failures.push(
-        `${qualified}: the doc comment says ${claimed.get(method)} credits, ` +
+        `${qualified}: the doc comment says ${claim} credits, ` +
         `the API charges ${expected} (${template})`,
       );
     }
